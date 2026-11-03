@@ -1,0 +1,35 @@
+{
+  "name": "sci-secure-core",
+  "version": "1.1.0",
+  "description": "理科安全核心——纯加密算法函数集（零依赖，仅用 Web Crypto API）",
+  "type": "module",
+  "main": "sci-secure-core.js",
+  "module": "sci-secure-core.js",
+  "exports": {
+    ".": {
+      "import": "./sci-secure-core.js",
+      "default": "./sci-secure-core.js"
+    }
+  },
+  "files": [
+    "sci-secure-core.js",
+    "README.md",
+    "FORMAT-SPEC.md",
+    "reference-impl-python.py"
+  ],
+  "keywords": [
+    "encryption",
+    "aes-gcm",
+    "pbkdf2",
+    "hkdf",
+    "totp",
+    "webcrypto",
+    "security",
+    "zero-dependency"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=15.0.0"
+  },
+  "browser": "sci-secure-core.js"
+}

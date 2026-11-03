@@ -1,0 +1,33 @@
+{
+  "name": "sci-secure-lib",
+  "version": "1.1.0",
+  "description": "理科安全库——可嵌套的完整三层安全模块（会话密钥生命周期 + 信封加密 + 可插拔存储）",
+  "type": "module",
+  "main": "index.js",
+  "module": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "keywords": [
+    "encryption",
+    "vault",
+    "aes-gcm",
+    "session-key",
+    "totp",
+    "security",
+    "webcrypto",
+    "browser"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=15.0.0"
+  },
+  "browser": "index.js"
+}

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>理科安全 sci-secure · 可复用的 Web 加密模块</title>
+<meta name="description" content="从「理科计算器·验证器」剥离出的零依赖加密模块：PBKDF2-600k + HKDF + AES-256-GCM 信封加密，跨语言格式规范与 Python 参考实现。">
+<style>
+  :root{
+    --ink:#16202b; --ink-2:#41505f; --ink-3:#6b7a8b;
+    --bg:#fbfcfe; --panel:#ffffff; --line:#e3e9f2;
+    --accent:#2f6fed; --accent-soft:#eef4ff;
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.75 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:0 22px 72px}
+  header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#f6f9ff,#fbfcfe)}
+  .hero{padding:56px 0 44px}
+  .eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 14px}
+  h1{font-size:38px;line-height:1.25;margin:0 0 14px;letter-spacing:-.02em}
+  h1 small{display:block;font-size:17px;font-weight:400;color:var(--ink-2);margin-top:10px;letter-spacing:0}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .badge{font-size:12.5px;padding:4px 11px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--ink-2)}
+  .badge b{color:var(--accent);font-weight:600}
+  h2{font-size:22px;margin:52px 0 16px;padding-bottom:9px;border-bottom:1px solid var(--line);letter-spacing:-.01em}
+  h3{font-size:16px;margin:26px 0 8px}
+  p{margin:0 0 14px;color:var(--ink-2)}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(47,111,237,.28)}
+  a:hover{border-bottom-color:var(--accent)}
+  code{font-family:var(--mono);font-size:.875em;background:var(--accent-soft);color:#1c3d80;padding:1px 5px;border-radius:4px}
+  pre{background:#121b26;color:#dbe6f2;padding:16px 18px;border-radius:10px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7;margin:0 0 16px}
+  pre code{background:none;color:inherit;padding:0;font-size:13px}
+  pre .c{color:#7d93a8}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0 6px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .card h3{margin:0 0 6px;font-size:15.5px}
+  .card p{font-size:14px;margin:0 0 12px;color:var(--ink-3)}
+  .card .links{font-size:13px;display:flex;flex-wrap:wrap;gap:12px}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;margin:6px 0 18px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;font-size:13px;color:var(--ink-3);background:#f7f9fc}
+  td:first-child{white-space:nowrap;color:var(--ink)}
+  td code{white-space:nowrap}
+  ol.bounds{padding-left:0;list-style:none;counter-reset:b;margin:6px 0 0}
+  ol.bounds li{counter-increment:b;position:relative;padding-left:34px;margin-bottom:12px;color:var(--ink-2);font-size:15px}
+  ol.bounds li::before{
+    content:counter(b);position:absolute;left:0;top:2px;width:22px;height:22px;border-radius:50%;
+    background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  ol.bounds li b{color:var(--ink)}
+  .note{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 18px;font-size:14.5px;color:#24405f;margin:18px 0}
+  .note p{margin:0;color:inherit}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+  @media (max-width:640px){
+    h1{font-size:29px} .cards{grid-template-columns:1fr} .hero{padding:40px 0 32px}
+    h2{margin-top:40px} .wrap{padding:0 18px 56px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hero">
+    <p class="eyebrow">sci-secure · v1.1.0</p>
+    <h1>理科安全
+      <small>从单文件离线应用里剥离出的加密模块。零依赖、零 DOM、可跨语言复现。</small>
+    </h1>
+    <div class="badges">
+      <span class="badge"><b>PBKDF2</b> 600,000 次</span>
+      <span class="badge"><b>AES-256-GCM</b> + AAD</span>
+      <span class="badge">Web Crypto · 零依赖</span>
+      <span class="badge">跨语言格式规范</span>
+      <span class="badge">MIT</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h2>这是什么</h2>
+  <p>「理科计算器·验证器」是一份约 950&nbsp;KB 的单 HTML 文件应用，加密逻辑与计算逻辑混在一起，谁都用不了、也没法单独审。这里把密码学部分完整抽出来，重写成两个不依赖宿主代码的包——一个纯算法层，一个带会话生命周期的完整安全库。</p>
+  <div class="cards">
+    <div class="card">
+      <h3>sci-secure-core</h3>
+      <p>纯算法函数集。无状态，函数式调用，只管加解密。</p>
+      <div class="links">
+        <a href="core/sci-secure-core.js">源码</a>
+        <a href="core/README.md">说明</a>
+        <a href="core/FORMAT-SPEC.md">格式规范</a>
+        <a href="core/test.html">在线测试</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3>sci-secure-lib</h3>
+      <p><code>SecureVault</code> 类。内置登录、锁定、会话密钥生命周期与可插拔存储。</p>
+      <div class="links">
+        <a href="lib/index.js">源码</a>
+        <a href="lib/README.md">说明</a>
+        <a href="lib/test.html">在线测试</a>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:14px;margin-top:14px">还嫌麻烦？<a href="dist/sci-secure-core-1.1.0.tgz">core 打包产物</a> / <a href="dist/sci-secure-lib-1.1.0.tgz">lib 打包产物</a> 直接 <code>npm install ./xxx.tgz</code>。</p>
+
+  <h2>密码学设计</h2>
+  <table>
+    <tr><th>环节</th><th>算法 / 参数</th></tr>
+    <tr><td>口令派生</td><td>PBKDF2-HMAC-SHA256，<b>600,000 次迭代</b>（OWASP 2023 建议值）</td></tr>
+    <tr><td>密钥分离</td><td>HKDF-SHA256，按用途分域（会话 / 文件 v3 / v4 / v5 / TOTP / Argon2id）</td></tr>
+    <tr><td>对称加密</td><td>AES-256-GCM，96 位 IV，128 位认证标签，元数据走 AAD 认证</td></tr>
+    <tr><td>会话密钥</td><td>不可导出的 <code>CryptoKey</code>，JS 拿不到原始字节</td></tr>
+    <tr><td>校验口令</td><td>与加密密钥分离派生，验证值不可反推密钥</td></tr>
+    <tr><td>可选 KDF</td><td>Argon2id（内存密集，抗 GPU/ASIC），需宿主注入 WASM 实现</td></tr>
+  </table>
+
+  <h3>信封是自描述的</h3>
+  <p><code>iterations</code>、<code>salt</code>、<code>iv</code>、<code>version</code> 都写在密文头部，所以升级 KDF 强度不会让旧数据失效——旧信封按它自己记录的迭代数解开，新信封用新强度。</p>
+  <table>
+    <tr><th>版本</th><th>密钥来源</th><th>说明</th></tr>
+    <tr><td>v2</td><td>口令直派生</td><td>最早期格式，仍可解</td></tr>
+    <tr><td>v3</td><td>口令派生 + HKDF</td><td>引入文件密钥分域</td></tr>
+    <tr><td>v4</td><td>会话密钥 + AAD</td><td>元数据参与认证，防篡改</td></tr>
+    <tr><td>v5</td><td>Argon2id</td><td>内存密集，需注入实现</td></tr>
+  </table>
+
+  <h2>快速开始</h2>
+  <pre><code><span class="c">// 纯算法层</span>
+import * as sci from './core/sci-secure-core.js'
+
+const env  = await sci.encryptWithPassword({ name: '张三' }, '我的密码')
+const back = await sci.decryptWithPassword(env, '我的密码')
+
+<span class="c">// 完整安全库</span>
+import { SecureVault } from './lib/index.js'
+const vault = new SecureVault()
+await vault.register('alice', '密码123')
+const blob = await vault.encrypt({ note: '机密内容' })
+vault.lock()</code></pre>
+
+  <h3>用别的语言解开</h3>
+  <p>密文结构写在 <a href="core/FORMAT-SPEC.md">FORMAT-SPEC.md</a> 里，附实测向量；<a href="core/reference-impl-python.py">reference-impl-python.py</a> 是照规范写的 Python 实现，已经和 JS 版互相解通过。也就是说，数据不锁死在浏览器里。</p>
+
+  <h2>安全边界（请务必读）</h2>
+  <p>这套东西保护的是<strong>拿到密文的人</strong>，不是<strong>拿到你设备的人</strong>。下面这些它做不到：</p>
+  <ol class="bounds">
+    <li><b>JS 字符串清不掉。</b><code>zeroize()</code> 只能清 <code>Uint8Array</code>；口令一旦变成字符串就交给 GC 了。语言限制，不是偷懒。</li>
+    <li><b>本机被控则无解。</b>内存里有明文和会话密钥，扩展、注入脚本、调试端口都能读。</li>
+    <li><b>登录退避可绕过。</b>退避记录在 localStorage，清掉或直接对着密文爆破即可跳过；真正的下限由 KDF 强度决定。</li>
+    <li><b>Argon2id 默认没生效。</b>WebCrypto 没有 Argon2，必须自己注入 WASM 实现，否则走 PBKDF2。</li>
+    <li><b>口令强度仍是最弱一环。</b>迭代数翻倍只是把单次猜测成本提高约一倍，弱口令照样被字典打穿。</li>
+    <li><b>需要安全上下文。</b><code>crypto.subtle</code> 只在 HTTPS 或 localhost 下可用。</li>
+  </ol>
+
+  <div class="note">
+    <p>把一个加密模块公开，不会削弱它——安全性建立在密钥和口令上，不在代码保密上（Kerckhoffs 原则）。公开的价值是能被审查，而不是让实现烂在文件里。这个仓库里没有任何私钥、口令或真实用户数据。</p>
+  </div>
+
+  <h2>版本</h2>
+  <table>
+    <tr><th>版本</th><th>变更</th></tr>
+    <tr><td>1.1.0</td><td>PBKDF2 默认 310,000 → 600,000（向后兼容）；新增 v5/Argon2id 信封、防钓鱼安全短语、<code>zeroize</code>；lib 增加登录退避、自动锁定、<code>disposeTotp</code>、Trusted Types 策略</td></tr>
+    <tr><td>1.0.0</td><td>从主程序剥离，core 与 lib 双包成型</td></tr>
+  </table>
+
+  <footer>
+    理科安全 sci-secure · MIT License · 与主程序「理科计算器·验证器」互不依赖，主程序未因此改动。
+  </footer>
+
+</main>
+</body>
+</html>
