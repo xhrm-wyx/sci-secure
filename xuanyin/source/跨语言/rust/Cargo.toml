@@ -1,0 +1,18 @@
+[package]
+name = "sci_secure"
+version = "1.1.0"
+edition = "2021"
+description = "玄印 sci-secure v4 信封跨语言实现（Rust 版）"
+
+[dependencies]
+aes-gcm = "0.10"
+sha2 = "0.10"
+hkdf = "0.12"
+pbkdf2 = "0.12"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "demo"
+path = "src/main.rs"

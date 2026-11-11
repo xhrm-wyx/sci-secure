@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sci-secure-core 独立测试页</title>
+<style>
+  body{font-family:-apple-system,'Segoe UI',sans-serif;max-width:720px;margin:32px auto;padding:0 16px;color:#1a1a1a;background:#fff;}
+  h1{font-size:20px;border-bottom:2px solid #4a9eff;padding-bottom:8px;}
+  .case{background:#f7f9fc;border:1px solid #e3e8f0;border-radius:8px;padding:12px 16px;margin:12px 0;}
+  .case h3{margin:0 0 8px;font-size:15px;}
+  .ok{color:#0a7d32;font-weight:600;} .fail{color:#c0392b;font-weight:600;}
+  pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:6px;overflow:auto;font-size:12px;}
+  #summary{font-weight:600;margin-top:16px;padding:12px;border-radius:8px;}
+</style>
+</head>
+<body>
+<h1>sci-secure-core · 独立测试</h1>
+<p>本页验证剥离出的纯算法模块可脱离计算器独立运行（依赖 HTTPS 或 file://）。</p>
+<div id="results"></div>
+<div id="summary"></div>
+
+<script type="module">
+import * as sci from './sci-secure-core.js';
+
+const results = document.getElementById('results');
+const summary = document.getElementById('summary');
+let pass = 0, fail = 0;
+
+function addCase(title) {
+  const d = document.createElement('div');
+  d.className = 'case';
+  d.innerHTML = '<h3>' + title + '</h3>';
+  results.appendChild(d);
+  return d;
+}
+function report(el, ok, detail) {
+  const p = document.createElement('div');
+  p.className = ok ? 'ok' : 'fail';
+  p.textContent = (ok ? '✓ PASS  ' : '✗ FAIL  ') + detail;
+  el.appendChild(p);
+  ok ? pass++ : fail++;
+}
+
+// 用例 1：环境检测
+let c1 = addCase('环境检测');
+report(c1, sci.checkCryptoSupport(), 'Web Crypto 支持：' + (sci.checkCryptoSupport() ? '可用' : '不可用'));
+
+// 用例 2：编码往返
+let c2 = addCase('Base64 编解码往返');
+{
+  const buf = new Uint8Array([1,2,3,4,255,128,64]);
+  const b64 = sci.bufToB64(buf);
+  const back = sci.b64ToBuf(b64);
+  const same = Array.from(back).join(',') === Array.from(buf).join(',');
+  report(c2, same, 'bytes → b64 → bytes 一致');
+}
+
+// 用例 3：密码派生确定性
+let c3 = addCase('PBKDF2 派生确定性');
+try {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const a = await sci.pbkdf2Bits('hello', salt, 100000);
+  const b = await sci.pbkdf2Bits('hello', salt, 100000);
+  const sameSalt = sci.bufToB64(a) === sci.bufToB64(b);
+  const c = await sci.pbkdf2Bits('hellp', salt, 100000);
+  const diffPwd = sci.bufToB64(a) !== sci.bufToB64(c);
+  report(c3, sameSalt && diffPwd, '同盐同密码结果一致，不同密码结果不同');
+} catch(e) { report(c3, false, e.message); }
+
+// 用例 4：验证值与会话密钥分离
+let c4 = addCase('验证值与会话密钥分离');
+try {
+  const ikm = new Uint8Array(32).fill(7);
+  const ver = await sci.verifierForIkm(ikm);
+  const ssk = await sci.sessionForIkm(new Uint8Array(ikm));
+  report(c4, typeof ver === 'string' && !!ssk, 'verifier=' + ver.slice(0,12) + '…，sessionKey 类型=' + ssk.type);
+} catch(e) { report(c4, false, e.message); }
+
+// 用例 5：密码信封加密往返
+let c5 = addCase('密码信封加密往返');
+try {
+  const data = { name:'测试', value: 42, arr:[1,2,3] };
+  const env = await sci.encryptWithPassword(data, 'my-secret-pw', 100000);
+  const back = await sci.decryptWithPassword(env, 'my-secret-pw');
+  const ok = back.name === '测试' && back.value === 42;
+  report(c5, ok, '加密→解密还原：' + JSON.stringify(back));
+} catch(e) { report(c5, false, e.message); }
+
+// 用例 6：错误密码解密失败
+let c6 = addCase('错误密码解密失败');
+try {
+  const env = await sci.encryptWithPassword('机密内容', 'correct-pw', 100000);
+  let rejected = false;
+  try { await sci.decryptWithPassword(env, 'wrong-pw'); } catch(e) { rejected = true; }
+  report(c6, rejected, '错误密码被拒绝（GCM 认证失败）');
+} catch(e) { report(c6, false, e.message); }
+
+// 用例 7：v4 信封 + AAD 篡改检测
+let c7 = addCase('v4 信封 + AAD 防篡改');
+try {
+  const sessionKey = await sci.deriveSessionKey('pw123', sci.bufToB64(crypto.getRandomValues(new Uint8Array(16))), 100000);
+  const acctSalt = sci.bufToB64(crypto.getRandomValues(new Uint8Array(16)));
+  const blob = await sci.encryptEnvelopeV4({secret:'sensitive'}, sessionKey, 'alice', acctSalt);
+  const dec = await sci.decryptEnvelopeV4WithKey(blob, sessionKey);
+  // 篡改 username（AAD 字段）
+  const tampered = { ...blob, username:'mallory' };
+  let rejected = false;
+  try { await sci.decryptEnvelopeV4WithKey(tampered, sessionKey); } catch(e) { rejected = true; }
+  report(c7, dec.secret === 'sensitive' && rejected, '正常解密=' + dec.secret + '，篡改 username 被拒绝=' + rejected);
+} catch(e) { report(c7, false, e.message); }
+
+// 用例 8：TOTP 信封加密往返
+let c8 = addCase('TOTP 信封加密往返');
+try {
+  const sessionKey = await sci.deriveSessionKey('pw123', sci.bufToB64(crypto.getRandomValues(new Uint8Array(16))), 100000);
+  const accts = [{id:'a1', name:'GitHub', secret:'JBSWY3DPEHPK3PXP'}];
+  const enc = await sci.encryptTotpStore(accts, sessionKey);
+  const dec = await sci.decryptTotpStore(enc, sessionKey);
+  report(c8, dec && dec.length === 1 && dec[0].name === 'GitHub', '加密→解密还原 ' + dec.length + ' 条账号');
+} catch(e) { report(c8, false, e.message); }
+
+// 汇总
+summary.textContent = '测试完成：' + pass + ' 通过，' + fail + ' 失败';
+summary.style.background = fail === 0 ? '#e8f5e9' : '#fdecea';
+summary.style.color = fail === 0 ? '#0a7d32' : '#c0392b';
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# 国内网络下让 cargo 走清华镜像（crates 索引）。海内外通用时可删除本文件。
+[source.crates-io]
+replace-with = "tuna"
+
+[source.tuna]
+registry = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
+
+[net]
+git-fetch-with-cli = true

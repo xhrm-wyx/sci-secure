@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sci-secure-lib 嵌套使用测试</title>
+<style>
+  body{font-family:-apple-system,'Segoe UI',sans-serif;max-width:720px;margin:32px auto;padding:0 16px;color:#1a1a1a;background:#fff;}
+  h1{font-size:20px;border-bottom:2px solid #4a9eff;padding-bottom:8px;}
+  .case{background:#f7f9fc;border:1px solid #e3e8f0;border-radius:8px;padding:12px 16px;margin:12px 0;}
+  .case h3{margin:0 0 8px;font-size:15px;}
+  .ok{color:#0a7d32;font-weight:600;} .fail{color:#c0392b;font-weight:600;}
+  #summary{font-weight:600;margin-top:16px;padding:12px;border-radius:8px;}
+</style>
+</head>
+<body>
+<h1>sci-secure-lib · 嵌套使用测试</h1>
+<p>演示其他程序如何直接嵌套引用 SecureVault 类（完整三层安全库）。</p>
+<div id="results"></div>
+<div id="summary"></div>
+
+<script type="module">
+import { SecureVault } from './index.js';
+
+const results = document.getElementById('results');
+const summary = document.getElementById('summary');
+let pass = 0, fail = 0;
+
+function addCase(title) {
+  const d = document.createElement('div');
+  d.className = 'case';
+  d.innerHTML = '<h3>' + title + '</h3>';
+  results.appendChild(d);
+  return d;
+}
+function report(el, ok, detail) {
+  const p = document.createElement('div');
+  p.className = ok ? 'ok' : 'fail';
+  p.textContent = (ok ? '✓ PASS  ' : '✗ FAIL  ') + detail;
+  el.appendChild(p);
+  ok ? pass++ : fail++;
+}
+
+const vault = new SecureVault({ storageKey: 'demo-app-vault' });
+
+// 用例 1：环境检测
+let c1 = addCase('环境检测');
+report(c1, vault.isSupported(), 'Web Crypto 可用');
+
+// 用例 2：注册
+let c2 = addCase('注册账号');
+try {
+  await vault.register('alice', 'password123');
+  report(c2, vault.isUnlocked() && vault.currentUser === 'alice', '注册后已登录：' + vault.currentUser);
+} catch(e) { report(c2, false, e.message); }
+
+// 用例 3：加密数据
+let c3 = addCase('加密数据对象');
+let savedBlob = null;
+try {
+  savedBlob = await vault.encrypt({ note: '机密笔记', num: 99 });
+  report(c3, savedBlob.v === 4 && !!savedBlob.data, '生成 v4 信封，密文长度 ' + savedBlob.data.length);
+} catch(e) { report(c3, false, e.message); }
+
+// 用例 4：锁定后无法加密
+let c4 = addCase('锁定清除会话');
+try {
+  vault.lock();
+  report(c4, vault.locked && !vault.currentUser, '锁定后 locked=' + vault.locked + '，currentUser=' + vault.currentUser);
+} catch(e) { report(c4, false, e.message); }
+
+// 用例 5：锁定后加密被拒
+let c5 = addCase('锁定后加密被拒绝');
+try {
+  let rejected = false;
+  try { await vault.encrypt({ x: 1 }); } catch(e) { rejected = true; }
+  report(c5, rejected, '锁定后 encrypt 抛错：' + rejected);
+} catch(e) { report(c5, false, e.message); }
+
+// 用例 6：重新登录 + 解密
+let c6 = addCase('登录恢复会话并解密');
+try {
+  await vault.login('alice', 'password123');
+  const plain = await vault.decrypt(savedBlob);
+  report(c6, plain.note === '机密笔记' && plain.num === 99, '解密还原：' + JSON.stringify(plain));
+} catch(e) { report(c6, false, e.message); }
+
+// 用例 7：错误密码校验返回 false（verifyPassword 语义是「校验」，返回布尔值）
+let c7 = addCase('错误密码校验返回 false');
+try {
+  const okRight = await vault.verifyPassword('alice', 'password123');
+  const okWrong = await vault.verifyPassword('alice', 'wrong-password');
+  report(c7, okRight === true && okWrong === false, '正确密码=' + okRight + '，错误密码=' + okWrong);
+} catch(e) { report(c7, false, e.message); }
+
+// 用例 8：TOTP 加密往返
+let c8 = addCase('TOTP 加密往返');
+try {
+  const enc = await vault.encryptTotp([{ id: 'a1', name: 'GitHub', secret: 'JBSWY3DPEHPK3PXP' }]);
+  const dec = await vault.decryptTotp(enc);
+  report(c8, dec && dec.length === 1 && dec[0].name === 'GitHub', '加密→解密还原 ' + dec.length + ' 条账号');
+} catch(e) { report(c8, false, e.message); }
+
+// 汇总
+summary.textContent = '测试完成：' + pass + ' 通过，' + fail + ' 失败';
+summary.style.background = fail === 0 ? '#e8f5e9' : '#fdecea';
+summary.style.color = fail === 0 ? '#0a7d32' : '#c0392b';
+</script>
+</body>
+</html>

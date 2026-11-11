@@ -1,0 +1,29 @@
+{
+  "说明": "sci-secure v4 信封跨语言测试向量；所有 hex 均为小写，Base64 为标准带填充",
+  "password": "CrossLang-测试123",
+  "iterations": 600000,
+  "username": "demo",
+  "savedAt": 1700000000000,
+  "accountSalt_b64": "EBESExQVFhcYGRobHB0eHw==",
+  "fileSalt_b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+  "iv_b64": "QEFCQ0RFRkdISUpL",
+  "accountSalt_hex": "101112131415161718191a1b1c1d1e1f",
+  "fileSalt_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "iv_hex": "404142434445464748494a4b",
+  "ikm_hex": "76d9e772e61f2cd5a484ed2707982c535c3fa9faa7f8e68e98e777d3e994dcec",
+  "sessionKey_hex": "a53e9e23293c92c93d09a184dd4f858c8a714ac3b57b913e2ef361a6864fd965",
+  "fileKey_hex": "34bbb51f3931c9ffe208f9479c5f27190886b2992f71032ae317491d380ca89c",
+  "aad_utf8": "{\"v\":4,\"username\":\"demo\",\"accountSalt\":\"EBESExQVFhcYGRobHB0eHw==\",\"salt\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\",\"iv\":\"QEFCQ0RFRkdISUpL\",\"iterations\":600000,\"savedAt\":1700000000000}",
+  "plaintext_json": "{\"名称\":\"跨语言测试\",\"值\":42,\"ok\":true}",
+  "envelope": {
+    "v": 4,
+    "username": "demo",
+    "accountSalt": "EBESExQVFhcYGRobHB0eHw==",
+    "salt": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+    "iv": "QEFCQ0RFRkdISUpL",
+    "iterations": 600000,
+    "savedAt": 1700000000000,
+    "data": "tI6y+vD2423obQkjgmksLjQryH8YRhcs3yyQgcB545WbTS7ABZm+Ot8xRmd3eHEZmniOxPFPPDiSXLnmp0u7"
+  },
+  "envelope_json": "{\"v\":4,\"username\":\"demo\",\"accountSalt\":\"EBESExQVFhcYGRobHB0eHw==\",\"salt\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\",\"iv\":\"QEFCQ0RFRkdISUpL\",\"iterations\":600000,\"savedAt\":1700000000000,\"data\":\"tI6y+vD2423obQkjgmksLjQryH8YRhcs3yyQgcB545WbTS7ABZm+Ot8xRmd3eHEZmniOxPFPPDiSXLnmp0u7\"}"
+}
